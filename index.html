@@ -21,8 +21,8 @@ body { margin:0; font-family:Arial; background:#eef2f6; }
     color:white;
     padding:10px;
     display:flex;
-    align-items:center;
     justify-content:center;
+    align-items:center;
     gap:10px;
 }
 
@@ -40,27 +40,24 @@ body { margin:0; font-family:Arial; background:#eef2f6; }
 textarea {
     width:100%;
     height:70px;
-    padding:10px;
     font-size:16px;
+    padding:10px;
 }
 
 button {
     width:100%;
     padding:14px;
     margin-top:8px;
-    background:#0078d4;
-    color:white;
     border:none;
     border-radius:6px;
+    background:#0078d4;
+    color:white;
+    font-size:16px;
 }
 
 .reset { background:#666; }
 
-.result {
-    margin-top:15px;
-    padding:15px;
-    background:#f9f9f9;
-}
+.result { margin-top:15px; padding:15px; background:#f9f9f9; }
 
 #map { height:300px; margin-top:15px; }
 
@@ -87,17 +84,23 @@ button {
 <textarea id="input" placeholder="Enter or paste coordinates"></textarea>
 
 <button onclick="convert()">Convert & Locate</button>
-<button class="reset" onclick="resetTool()">Reset</button>
+<button class="reset" onclick="reset()">Reset</button>
 
 <div id="result"></div>
 <div id="map"></div>
 
 <div class="signature">S74</div>
-
 </div>
 </div>
 
 <script>
+
+// clear cache (update fix)
+window.addEventListener('load', ()=>{
+    if('caches' in window){
+        caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+    }
+});
 
 // projections
 proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
@@ -106,9 +109,10 @@ proj4.defs("EPSG:29903","+proj=tmerc +lat_0=53.5 +lon_0=-8 +k=1.000035 +x_0=2000
 // map
 let map = L.map('map').setView([53.4,-8],7);
 L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(map);
+
 let marker;
 
-// formatters
+// helpers
 function toDMS(deg,lat){
     let d=Math.floor(Math.abs(deg));
     let m=Math.floor((Math.abs(deg)-d)*60);
@@ -124,7 +128,6 @@ function toDMM(deg,lat){
     return `${d}° ${m}' ${dir}`;
 }
 
-// grid letter
 function getGridLetter(E,N){
     const grid=[
         ['V','W','X','Y','Z'],
@@ -136,7 +139,7 @@ function getGridLetter(E,N){
     return grid[Math.floor(N/100000)][Math.floor(E/100000)];
 }
 
-// ✅ PARSER WITH TYPE + ACCURACY
+// ✅ FULL PARSER (FINAL)
 function parse(input){
 
     input=input.toUpperCase()
@@ -145,14 +148,35 @@ function parse(input){
     .replace(/\s+/g," ")
     .trim();
 
-    // DMS
+    // ✅ COMPRESSED DMS FIX
     let comp=input.match(/(\d{3,4})\s+([\d.]+)\s*([NS]).+?(\d{3,4})\s+([\d.]+)\s*([EW])/);
     if(comp){
-        let lat=Math.floor(comp[1]/100)+(comp[1]%100)/60+comp[2]/3600;
-        let lon=Math.floor(comp[4]/100)+(comp[4]%100)/60+comp[5]/3600;
-        if(comp[3]=="S") lat*=-1;
-        if(comp[6]=="W") lon*=-1;
-        return {lat,lon,type:"DMS",acc:"±5m"};
+
+        function parseCoord(dm,sec,dir){
+            dm=dm.toString();
+
+            let deg, min;
+
+            if(dm.length===3){
+                deg=parseInt(dm.slice(0,2));
+                min=parseInt(dm.slice(2));
+            } else {
+                deg=parseInt(dm.slice(0,2));
+                min=parseInt(dm.slice(2));
+            }
+
+            let val=deg+(min/60)+(parseFloat(sec)/3600);
+            if(dir==="S"||dir==="W") val*=-1;
+
+            return val;
+        }
+
+        return {
+            lat:parseCoord(comp[1],comp[2],comp[3]),
+            lon:parseCoord(comp[4],comp[5],comp[6]),
+            type:"DMS",
+            acc:"±5m"
+        };
     }
 
     // DMM
@@ -160,17 +184,15 @@ function parse(input){
     if(dmm){
         let lat=(+dmm[2])+(+dmm[3]/60);
         let lon=(+dmm[5])+(+dmm[6]/60);
-        if(dmm[1]=="S") lat*=-1;
-        if(dmm[4]=="W") lon*=-1;
+        if(dmm[1]==="S") lat*=-1;
+        if(dmm[4]==="W") lon*=-1;
         return {lat,lon,type:"DMM",acc:"±30m"};
     }
 
     // Decimal
     let dec=input.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
     if(dec){
-        let precision = dec[1].split(".")[1].length;
-        let acc = precision>=6 ? "±1m" : "±10m";
-        return {lat:+dec[1],lon:+dec[2],type:"Decimal",acc};
+        return {lat:+dec[1],lon:+dec[2],type:"Decimal",acc:"±5m"};
     }
 
     // Irish Grid
@@ -189,7 +211,7 @@ function parse(input){
 
         let coords=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
 
-        let acc = ["±1000m","±100m","±10m","±1m"][grid[2].length-2];
+        let acc=["±1000m","±100m","±10m","±1m"][grid[2].length-2];
 
         return {lat:coords[1],lon:coords[0],type:"Irish Grid",acc};
     }
@@ -227,16 +249,15 @@ function convert(){
 
     <br><b>DMM</b><br>${toDMM(lat,true)}<br>${toDMM(lon,false)}
 
-    </div>
-    `;
-
+    </div>`;
+    
     map.setView([lat,lon],13);
     if(marker) marker.setLatLng([lat,lon]);
     else marker=L.marker([lat,lon]).addTo(map);
 }
 
 // reset
-function resetTool(){
+function reset(){
     input.value="";
     result.innerHTML="";
     if(marker) map.removeLayer(marker);
@@ -244,6 +265,5 @@ function resetTool(){
 }
 
 </script>
-
 </body>
 </html>
