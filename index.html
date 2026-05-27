@@ -263,6 +263,10 @@ function resetTool(){
     if(marker){ map.removeLayer(marker); marker=null; }
     map.setView([53.4,-8],7);
 }
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+``
 
 </script>
 
