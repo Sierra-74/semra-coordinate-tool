@@ -7,9 +7,9 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2c3e50">
 
+<!-- ✅ FIXED LIBRARIES -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
@@ -40,24 +40,29 @@ body { margin:0; font-family:Arial; background:#eef2f6; }
 textarea {
     width:100%;
     height:70px;
-    font-size:16px;
     padding:10px;
+    font-size:16px;
 }
 
 button {
     width:100%;
     padding:14px;
     margin-top:8px;
-    border:none;
-    border-radius:6px;
     background:#0078d4;
     color:white;
+    border:none;
+    border-radius:6px;
     font-size:16px;
 }
 
 .reset { background:#666; }
 
-.result { margin-top:15px; padding:15px; background:#f9f9f9; }
+.result {
+    margin-top:15px;
+    padding:15px;
+    background:#f9f9f9;
+    line-height:1.6;
+}
 
 #map { height:300px; margin-top:15px; }
 
@@ -74,8 +79,8 @@ button {
 <body>
 
 <div class="header">
-<img src="https://www.semra.ie/wp-content/uploads/2021/10/semra_logo_196x221_transparent.png" class="logo">
-<div>SEMRA Coordinate Converter</div>
+    <img src="https://www.semra.ie/wp-content/uploads/2021/10/semra_logo_196x221_transparent.png" class="logo">
+    <div>SEMRA Coordinate Converter</div>
 </div>
 
 <div class="container">
@@ -84,35 +89,37 @@ button {
 <textarea id="input" placeholder="Enter or paste coordinates"></textarea>
 
 <button onclick="convert()">Convert & Locate</button>
-<button class="reset" onclick="reset()">Reset</button>
+<button class="reset" onclick="resetTool()">Reset</button>
 
 <div id="result"></div>
 <div id="map"></div>
 
 <div class="signature">S74</div>
+
 </div>
 </div>
 
 <script>
 
-// clear cache (update fix)
+// ✅ CLEAR CACHE (fix update issue)
 window.addEventListener('load', ()=>{
     if('caches' in window){
         caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
     }
 });
 
-// projections
+// ✅ PROJECTIONS
 proj4.defs("EPSG:4326","+proj=longlat +datum=WGS84 +no_defs");
 proj4.defs("EPSG:29903","+proj=tmerc +lat_0=53.5 +lon_0=-8 +k=1.000035 +x_0=200000 +y_0=250000 +ellps=airy");
 
-// map
+// ✅ MAP
 let map = L.map('map').setView([53.4,-8],7);
-L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(map);
+
+L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxZoom:17}).addTo(map);
 
 let marker;
 
-// helpers
+// ✅ FORMATTERS
 function toDMS(deg,lat){
     let d=Math.floor(Math.abs(deg));
     let m=Math.floor((Math.abs(deg)-d)*60);
@@ -128,6 +135,7 @@ function toDMM(deg,lat){
     return `${d}° ${m}' ${dir}`;
 }
 
+// ✅ GRID LETTER
 function getGridLetter(E,N){
     const grid=[
         ['V','W','X','Y','Z'],
@@ -139,33 +147,29 @@ function getGridLetter(E,N){
     return grid[Math.floor(N/100000)][Math.floor(E/100000)];
 }
 
-// ✅ FULL PARSER (FINAL)
+// ✅ ✅ FINAL PARSER (FIXED DMS + COMMAS)
 function parse(input){
 
     input=input.toUpperCase()
     .replace(/_/g," ")
+    .replace(/,/g," ") // ✅ critical fix
     .replace(/[°'"]/g," ")
     .replace(/\s+/g," ")
     .trim();
 
-    // ✅ COMPRESSED DMS FIX
-    let comp=input.match(/(\d{3,4})\s+([\d.]+)\s*([NS]).+?(\d{3,4})\s+([\d.]+)\s*([EW])/);
+    // ✅ COMPRESSED DMS (FIXED)
+    let comp=input.match(/(\d{3,4})\s+([\d.]+)\s*([NS])\s+(\d{3,4})\s+([\d.]+)\s*([EW])/);
+
     if(comp){
 
         function parseCoord(dm,sec,dir){
             dm=dm.toString();
 
-            let deg, min;
-
-            if(dm.length===3){
-                deg=parseInt(dm.slice(0,2));
-                min=parseInt(dm.slice(2));
-            } else {
-                deg=parseInt(dm.slice(0,2));
-                min=parseInt(dm.slice(2));
-            }
+            let deg=parseInt(dm.slice(0,2));
+            let min=parseInt(dm.slice(2));
 
             let val=deg+(min/60)+(parseFloat(sec)/3600);
+
             if(dir==="S"||dir==="W") val*=-1;
 
             return val;
@@ -179,24 +183,29 @@ function parse(input){
         };
     }
 
-    // DMM
+    // ✅ DMM
     let dmm=input.match(/([NS])\s*(\d+)\s+([\d.]+).+?([EW])\s*(\d+)\s+([\d.]+)/);
+
     if(dmm){
         let lat=(+dmm[2])+(+dmm[3]/60);
         let lon=(+dmm[5])+(+dmm[6]/60);
+
         if(dmm[1]==="S") lat*=-1;
         if(dmm[4]==="W") lon*=-1;
+
         return {lat,lon,type:"DMM",acc:"±30m"};
     }
 
-    // Decimal
+    // ✅ DECIMAL
     let dec=input.match(/(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
+
     if(dec){
         return {lat:+dec[1],lon:+dec[2],type:"Decimal",acc:"±5m"};
     }
 
-    // Irish Grid
+    // ✅ IRISH GRID (FIXED SCALE)
     let grid=input.match(/^([A-Z])\s*(\d+)\s*(\d+)/);
+
     if(grid){
         const letters="VWXYZQRSTULMNOPFGHJKABCDE";
         let idx=letters.indexOf(grid[1]);
@@ -206,8 +215,8 @@ function parse(input){
 
         let scale=Math.pow(10,5-grid[2].length);
 
-        let E=e100*100000+Number(grid[2])*scale;
-        let N=n100*100000+Number(grid[3])*scale;
+        let E=e100*100000 + Number(grid[2])*scale;
+        let N=n100*100000 + Number(grid[3])*scale;
 
         let coords=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
 
@@ -219,13 +228,13 @@ function parse(input){
     return null;
 }
 
-// main
+// ✅ MAIN
 function convert(){
 
     let res=parse(input.value);
 
     if(!res){
-        result.innerHTML="❌ Invalid input";
+        result.innerHTML="❌ Invalid or unrecognised format";
         return;
     }
 
@@ -245,25 +254,32 @@ function convert(){
 
     <br><b>Decimal</b><br>${lat.toFixed(6)}, ${lon.toFixed(6)}
 
-    <br><b>DMS</b><br>${toDMS(lat,true)}<br>${toDMS(lon,false)}
+    <br><b>DMS</b><br>
+    ${toDMS(lat,true)}<br>
+    ${toDMS(lon,false)}
 
-    <br><b>DMM</b><br>${toDMM(lat,true)}<br>${toDMM(lon,false)}
+    <br><b>DMM</b><br>
+    ${toDMM(lat,true)}<br>
+    ${toDMM(lon,false)}
 
-    </div>`;
-    
+    </div>
+    `;
+
     map.setView([lat,lon],13);
+
     if(marker) marker.setLatLng([lat,lon]);
     else marker=L.marker([lat,lon]).addTo(map);
 }
 
-// reset
-function reset(){
+// ✅ RESET
+function resetTool(){
     input.value="";
     result.innerHTML="";
-    if(marker) map.removeLayer(marker);
+    if(marker){ map.removeLayer(marker); marker=null; }
     map.setView([53.4,-8],7);
 }
 
 </script>
+
 </body>
 </html>
