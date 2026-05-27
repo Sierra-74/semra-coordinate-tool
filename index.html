@@ -88,7 +88,6 @@ button {
     color:#888;
 }
 </style>
-
 </head>
 
 <body>
@@ -116,7 +115,7 @@ button {
 
 <script>
 
-// ✅ FORCE APP UPDATE (VERY IMPORTANT)
+// ✅ FORCE CACHE CLEAR (fix update issue)
 window.addEventListener('load', () => {
     if ('caches' in window) {
         caches.keys().then(names => {
@@ -166,20 +165,30 @@ function getGridLetter(E,N){
     return grid[Math.floor(N/100000)][Math.floor(E/100000)];
 }
 
-// ✅ PARSER
+// ✅ ✅ FIXED PARSER (CRITICAL FIX)
 function parse(input){
 
     input=input.toUpperCase().trim();
 
     let grid=input.match(/^([A-Z])\s*(\d+)\s*(\d+)/);
+
     if(grid){
         const letters="VWXYZQRSTULMNOPFGHJKABCDE";
         let idx=letters.indexOf(grid[1]);
 
-        let E=(idx%5)*100000+Number(grid[2]);
-        let N=Math.floor(idx/5)*100000+Number(grid[3]);
+        let e100=idx%5;
+        let n100=Math.floor(idx/5);
+
+        let eStr=grid[2];
+        let nStr=grid[3];
+
+        let scale=Math.pow(10,5-eStr.length);
+
+        let E=e100*100000 + Number(eStr)*scale;
+        let N=n100*100000 + Number(nStr)*scale;
 
         let coords=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
+
         return {lat:coords[1],lon:coords[0]};
     }
 
@@ -208,7 +217,7 @@ https://maps.google.com/?q=${lat},${lon}`;
     window.open("https://wa.me/?text=" + encodeURIComponent(msg));
 }
 
-// ✅ SCREENSHOT (ANDROID SHARE FIX)
+// ✅ SCREENSHOT
 function saveScreenshot(){
 
     map.invalidateSize();
@@ -222,13 +231,9 @@ function saveScreenshot(){
                 let file=new File([blob],"SEMRA_location.png",{type:"image/png"});
 
                 if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-                    navigator.share({
-                        files:[file],
-                        title:"SEMRA Location"
-                    });
+                    navigator.share({files:[file],title:"SEMRA Location"});
                 } else {
-                    let url=URL.createObjectURL(blob);
-                    window.open(url);
+                    window.open(URL.createObjectURL(blob));
                 }
             });
         });
@@ -261,21 +266,16 @@ function convert(){
 
     <br><b>Decimal</b><br>${lat.toFixed(6)}, ${lon.toFixed(6)}
 
-    <br><b>DMS</b><br>
-    ${toDMS(lat,true)}<br>
-    ${toDMS(lon,false)}
+    <br><b>DMS</b><br>${toDMS(lat,true)}<br>${toDMS(lon,false)}
 
-    <br><b>DMM</b><br>
-    ${toDMM(lat,true)}<br>
-    ${toDMM(lon,false)}
+    <br><b>DMM</b><br>${toDMM(lat,true)}<br>${toDMM(lon,false)}
 
     <br><br>
 
     <button onclick="shareWhatsApp(${lat},${lon},'${grid}')">
     Share via WhatsApp</button>
 
-    <button onclick="saveScreenshot()">
-    Share / Save Screenshot</button>
+    <button onclick="saveScreenshot()">Share / Save Screenshot</button>
 
     <button onclick="window.open('https://maps.google.com/?q=${lat},${lon}')">
     Open Google Maps</button>
