@@ -118,7 +118,6 @@ button {
   margin-top:10px;
   border-radius:8px;
 }
-
 </style>
 
 <!-- ✅ Scripts (MUST BE IN HEAD OR BEFORE BODY END) -->
@@ -273,8 +272,6 @@ button {
 </head>
 
 <body>
-  
-
 
 
 <div class="header">
@@ -532,14 +529,8 @@ function openMaps(lat,lon){
  window.open(`https://maps.google.com/?q=${lat},${lon}`);
 }
 
-let message =
-`📍 SCOUT
-
-Grid: ${grid6}
-DD: ${lat.toFixed(6)}, ${lon.toFixed(6)}
-
-Maps:
-https://maps.google.com/?q=${lat},${lon};
+function shareWhatsApp(lat,lon){
+ window.open("https://wa.me/?text="+encodeURIComponent(`${lat},${lon}`));
 }
 
 function saveScreenshot(){
