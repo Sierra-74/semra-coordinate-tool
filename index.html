@@ -321,7 +321,15 @@ function convert(){
  let g=proj4("EPSG:4326","EPSG:29903",[lon,lat]);
  let E=g[0]+50, N=g[1]-19;
 
- let grid=`${getGridLetter(E,N)} ${Math.round((E%100000)/100)} ${Math.round((N%100000)/100)}`;
+ // ✅ full precision grid (5-digit)
+let easting = Math.round(E % 100000);
+let northing = Math.round(N % 100000);
+
+// pad numbers to 5 digits
+easting = easting.toString().padStart(5, '0');
+northing = northing.toString().padStart(5, '0');
+
+let grid = `${getGridLetter(E,N)} ${easting} ${northing}`;
 
 result.innerHTML=`
 <div class="result">
