@@ -127,6 +127,9 @@ button {
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
 
@@ -286,7 +289,7 @@ button {
 
 <div id="result"></div>
 <div id="map"></div>
-<img id="staticMap" style="width:100%; margin-top:10px; display:none; border-radius:8px;">
+
 </div>
 </div>
 
@@ -516,12 +519,6 @@ result.innerHTML=`
  map.setView([lat,lon],13);
  if(marker) marker.setLatLng([lat,lon]);
  else marker=L.marker([lat,lon]).addTo(map);
-  // ✅ Generate static map (fallback for screenshots)
-let staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=13&size=600x300&maptype=terrain&markers=color:red%7C${lat},${lon}`;
-
-let staticMap = document.getElementById("staticMap");
-staticMap.src = staticUrl;
-staticMap.style.display = "block";
 }
 
 // tools
@@ -535,27 +532,18 @@ function shareWhatsApp(lat,lon){
 
 function saveScreenshot(){
 
-  let staticMap = document.getElementById("staticMap");
-  let liveMap = document.getElementById("map");
-  let staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&amp;zoom=13&amp;size=600x300&amp;maptype=terrain&amp;markers=color:red%7C${lat},${lon}`;
-
-
-  // ✅ show static, hide live map
-  staticMap.style.display = "block";
-  liveMap.style.display = "none";
-
   html2canvas(document.getElementById("captureArea"), {
-    useCORS: true,
+    useCORS: true,       // ✅ allow external images
+    allowTaint: false,
     backgroundColor: "#ffffff"
   }).then(canvas => {
 
     let img = canvas.toDataURL("image/png");
 
-    // ✅ restore map after capture
-    liveMap.style.display = "block";
-
+    // ✅ open image (works on phone + desktop)
     let w = window.open();
     w.document.write('<img src="'+img+'" style="width:100%">');
+
   });
 }
 
@@ -565,10 +553,6 @@ function resetTool(){
  if(marker){ map.removeLayer(marker); marker=null;}
  map.setView([53.5,-8],7);
 }
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
 
 </script>
 </body>
