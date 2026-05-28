@@ -529,9 +529,38 @@ function openMaps(lat,lon){
  window.open(`https://maps.google.com/?q=${lat},${lon}`);
 }
 
-function shareWhatsApp(lat,lon){
- window.open("https://wa.me/?text="+encodeURIComponent(`${lat},${lon}`));
+function shareWhatsApp(lat, lon){
+
+  // ✅ Convert to Irish Grid
+  let g = proj4("EPSG:4326","EPSG:29903",[lon,lat]);
+  let E = g[0] + 50;
+  let N = g[1] - 19;
+
+  let easting = Math.round(E % 100000).toString().padStart(5,'0');
+  let northing = Math.round(N % 100000).toString().padStart(5,'0');
+
+  let letter = getGridLetter(E,N);
+
+  // ✅ full grid
+  let gridFull = `${letter} ${easting} ${northing}`;
+
+  // ✅ Build message
+  let message =
+`📍 SCOUT Location
+
+Irish Grid (Full):
+${gridFull}
+
+Decimal:
+${lat.toFixed(6)}, ${lon.toFixed(6)}
+
+Google Maps:
+https://maps.google.com/?q=${lat},${lon}`;
+
+  // ✅ Open WhatsApp
+  window.open("https://wa.me/?text=" + encodeURIComponent(message));
 }
+
 
 function saveScreenshot(){
 
