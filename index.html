@@ -127,11 +127,21 @@ button {
   background: #1f2f3a;
   color: white;
   display: flex;
+  flex-direction: column;     /* ✅ stack logo + text */
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: bold;
   z-index: 9999;
+}
+
+.splash-logo {
+  width: 90px;
+  margin-bottom: 15px;
+}
+
+.splash-text {
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 2px;
 }  
 </style>
 
@@ -288,9 +298,12 @@ button {
 
 <body>
   
+
 <div id="splash">
-  <div>S.C.O.U.T</div>
+  <img src="icon.png" class="splash-logo">
+  <div class="splash-text">S.C.O.U.T</div>
 </div>
+
 
 
 <div class="header">
