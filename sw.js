@@ -1,6 +1,6 @@
 self.addEventListener('install', function(e) {
   e.waitUntil(
-    caches.open('semra-tool').then(function(cache) {
+    caches.open('scout-tool-v1').then(function(cache) {
       return cache.addAll([
         './',
         './index.html'
