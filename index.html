@@ -335,20 +335,38 @@ function parse(input){
         .replace(/\s+/g," ")
         .trim();
 
-    // ✅ 1. DECIMAL (supports split numbers like 53.002 8001)
-    let decParts = input.split(" ");
-    if(decParts.length >= 2){
-        let lat = parseFloat(decParts[0] + (decParts[1].startsWith(".") ? decParts[1] : ""));
-        let lon = parseFloat(decParts[decParts.length-1]);
+    // ✅ DECIMAL (robust - handles split & normal safely)
+let parts = input.split(" ");
 
-        if(!isNaN(lat) && !isNaN(lon)){
-            return {
-                lat,
-                lon,
-                type:"Decimal (DD)"
-            };
-        }
-    }
+// ✅ Case 1: normal decimal
+// e.g. 52.664597 -6.496500
+if(parts.length === 2 &&
+   /^-?\d+\.\d+$/.test(parts[0]) &&
+   /^-?\d+\.\d+$/.test(parts[1]))
+{
+    return {
+        lat: parseFloat(parts[0]),
+        lon: parseFloat(parts[1]),
+        type: "Decimal (DD)"
+    };
+}
+
+// ✅ Case 2: split decimal latitude
+// e.g. 53.002 8001 -6.3525070
+if(parts.length === 3 &&
+   /^-?\d+\.\d+$/.test(parts[0]) &&
+   /^\d+$/.test(parts[1]) &&
+   /^-?\d+\.\d+$/.test(parts[2]))
+{
+    let lat = parseFloat(parts[0] + parts[1]);  // join split lat
+    let lon = parseFloat(parts[2]);
+
+    return {
+        lat,
+        lon,
+        type: "Decimal (DD)"
+    };
+}
 
     // ✅ 2. DMM (N 52 29.10 W 6 44.81)
     let dmm = input.match(/([NS])\s*(\d+)\s+([\d.]+)\s+([EW])\s*(\d+)\s+([\d.]+)/);
