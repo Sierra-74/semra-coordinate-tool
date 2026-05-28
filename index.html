@@ -111,7 +111,7 @@ function getGridLetter(E,N){
  return grid[Math.floor(N/100000)][Math.floor(E/100000)];
 }
 
-// ✅ CLEAN SAFE PARSER
+// ✅ FIXED PARSER (ORDER CRITICAL)
 function parse(input){
 
  input=input.toUpperCase()
@@ -120,6 +120,21 @@ function parse(input){
  .replace(/[°'"]/g," ")
  .replace(/\s+/g," ")
  .trim();
+
+ // ✅ ALWAYS CHECK GRID FIRST
+ let g=input.match(/^([A-Z])\s*(\d+)\s*(\d+)/);
+ if(g){
+  const letters="VWXYZQRSTULMNOPFGHJKABCDE";
+  let idx=letters.indexOf(g[1]);
+
+  let scale=Math.pow(10,5-g[2].length);
+
+  let E=(idx%5)*100000 + Number(g[2])*scale;
+  let N=Math.floor(idx/5)*100000 + Number(g[3])*scale;
+
+  let c=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
+  return {lat:c[1],lon:c[0],type:"Irish Grid"};
+ }
 
  let t=input.split(" ");
 
@@ -132,8 +147,8 @@ function parse(input){
   return {lat,lon,type:"DMS"};
  }
 
- // ✅ COMPRESSED DMS
- if(t.length>=6 && t[0].length≥3 && /^[0-9]+$/.test(t[0])){
+ // ✅ COMPRESSED DMS (FIXED)
+ if(t.length>=6 && t[0].length >= 3 && /^[0-9]+$/.test(t[0])){
   function dm(v){
    let d=parseInt(v.slice(0,2));
    let m=parseInt(v.slice(2)||0);
@@ -166,26 +181,12 @@ function parse(input){
  let dec=input.match(/(-?\d+\.\d+)\s+(-?\d+\.\d+)/);
  if(dec) return {lat:+dec[1],lon:+dec[2],type:"Decimal"};
 
- // ✅ Irish Grid
- let g=input.match(/^([A-Z])\s*(\d+)\s*(\d+)/);
- if(g){
-  const letters="VWXYZQRSTULMNOPFGHJKABCDE";
-  let idx=letters.indexOf(g[1]);
-
-  let scale=Math.pow(10,5-g[2].length);
-
-  let E=(idx%5)*100000 + Number(g[2])*scale;
-  let N=Math.floor(idx/5)*100000 + Number(g[3])*scale;
-
-  let c=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
-  return {lat:c[1],lon:c[0],type:"Irish Grid"};
- }
-
  return null;
 }
 
 // ✅ MAIN
 function convert(){
+
  let res=parse(input.value);
 
  if(!res){
