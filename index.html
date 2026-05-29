@@ -145,7 +145,7 @@ function parse(input){
 
  // ✅ EIRCODE
  let eircode=input.match(/^[A-Z0-9]{3}\s?[A-Z0-9]{4}$/);
- if(eircode) return {type:"EIRCODE",value:input};
+if(eircode) return {type:"EIRCODE",value:input.replace(" ", "")};
 
  let p=input.split(" ");
 
