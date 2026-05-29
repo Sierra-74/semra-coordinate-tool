@@ -170,13 +170,18 @@ if(parts.length>=8&&(parts.includes("N")||parts.includes("S"))){
 // Irish grid
 let g=input.match(/^([A-Z])\s*(\d{2,5})\s*(\d{2,5})$/);
 if(g){
- const letters="VWXYZQRSTULMNOPFGHJKABCDE";
- let idx=letters.indexOf(g[1]);
- if(idx<0)return null;
- let E=(idx%5)*100000+Number(g[2]);
- let N=Math.floor(idx/5)*100000+Number(g[3]);
- let c=proj4("EPSG:29903","EPSG:4326",[E,N]);
- return{type:"IRISH_GRID",lat:c[1],lon:c[0]};
+  const letters="VWXYZQRSTULMNOPFGHJKABCDE";
+  let idx=letters.indexOf(g[1]);
+  if(idx<0)return null;
+
+  let scale = Math.pow(10,5-g[2].length);
+
+  let E=(idx%5)*100000 + Number(g[2]) * scale;
+  let N=Math.floor(idx/5)*100000 + Number(g[3]) * scale;
+
+  let c=proj4("EPSG:29903","EPSG:4326",[E,N]);
+
+  return {type:"IRISH_GRID",lat:c[1],lon:c[0]};
 }
 
 return null;
