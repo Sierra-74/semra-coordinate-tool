@@ -159,40 +159,133 @@ function getGridLetter(E,N){
 // PARSER (FIXED)
 function parse(input){
 
-input = input.toUpperCase()
-  .replace(/_/g," ")
-  .replace(/,/g," ")
-  .replace(/[°'"]/g," ")
-  .replace(/\s+/g," ")
-  .trim();
+    input = input.toUpperCase()
+        .replace(/_/g," ")
+        .replace(/,/g," ")
+        .replace(/[°'"]/g," ")
+        .replace(/\s+/g," ")
+        .trim();
 
-// EIRCODE
-let eircodeMatch = input.match(/^[A-Z0-9]{3}\s?[A-Z0-9]{4}$/);
+    // ✅ EIRCODE (RESTORED)
+    let eircodeMatch = input.match(/^[A-Z0-9]{3}\s?[A-Z0-9]{4}$/);
+    if(eircodeMatch){
+        return {
+            type: "EIRCODE",
+            value: input.replace(/\s+/g, "")
+        };
+    }
 
-if(eircodeMatch){
-  return {
-    type:"EIRCODE",
-    value: input.replace(/\s+/g,"")
-  };
+    // ✅ DECIMAL DD (RESTORED FLEXIBILITY)
+    let parts = input.split(" ");
+
+    if(parts.length === 2 &&
+       /^-?\d+(\.\d+)?$/.test(parts[0]) &&
+       /^-?\d+(\.\d+)?$/.test(parts[1])){
+
+        return {
+            lat: parseFloat(parts[0]),
+            lon: parseFloat(parts[1]),
+            type: "Decimal (DD)"
+        };
+    }
+
+    // split decimal lat case (RESTORED)
+    if(parts.length === 3 &&
+       /^-?\d+(\.\d+)?$/.test(parts[0]) &&
+       /^\d+$/.test(parts[1]) &&
+       /^-?\d+(\.\d+)?$/.test(parts[2])){
+
+        return {
+            lat: parseFloat(parts[0] + parts[1]),
+            lon: parseFloat(parts[2]),
+            type: "Decimal (DD)"
+        };
+    }
+
+    // ✅ DMM (RESTORED EXACT ORIGINAL BEHAVIOUR)
+    let dmm = input.match(/([NS])\s*(\d+)\s+([\d.]+)\s+([EW])\s*(\d+)\s+([\d.]+)/);
+    if(dmm){
+        let lat = (+dmm[2]) + (+dmm[3]/60);
+        let lon = (+dmm[5]) + (+dmm[6]/60);
+
+        if(dmm[1]==="S") lat *= -1;
+        if(dmm[4]==="W") lon *= -1;
+
+        return { lat, lon, type:"DDM" };
+    }
+
+    // ✅ FULL DMS (RESTORED SAFETY CHECK)
+    let t = input.split(" ");
+
+    if(t.length >= 8 && (t.includes("N") || t.includes("S"))){
+        let lat = (+t[0]) + (t[1]/60) + (t[2]/3600);
+        let lon = (+t[4]) + (t[5]/60) + (t[6]/3600);
+
+        if(t[3] === "S") lat *= -1;
+        if(t[7] === "W") lon *= -1;
+
+        return { lat, lon, type:"DMS" };
+    }
+
+    // ✅ COMPRESSED DMS (RESTORED ORIGINAL LOGIC)
+    if(t.length >= 6 && /^[0-9]+$/.test(t[0])){
+
+        function parseDM(value){
+            value = value.toString();
+
+            if(value.length === 4)
+                return [parseInt(value.slice(0,2)), parseInt(value.slice(2))];
+
+            if(value.length === 3)
+                return [parseInt(value.slice(0,1)), parseInt(value.slice(1))];
+
+            if(value.length === 2)
+                return [parseInt(value[0]), parseInt(value[1])];
+
+            return [parseInt(value), 0];
+        }
+
+        let [dLat, mLat] = parseDM(t[0]);
+        let [dLon, mLon] = parseDM(t[3]);
+
+        let lat = dLat + (mLat/60) + (parseFloat(t[1]) / 3600);
+        let lon = dLon + (mLon/60) + (parseFloat(t[4]) / 3600);
+
+        if(t[2] === "S") lat *= -1;
+        if(t[5] === "W") lon *= -1;
+
+        return {
+            lat,
+            lon,
+            type: "DMS (Compressed)"
+        };
+    }
+
+    // ✅ IRISH GRID (UNCHANGED BUT SAFE)
+    let grid = input.match(/^([A-Z])\s*(\d{2,5})\s*(\d{2,5})$/);
+
+    if(grid){
+        const letters="VWXYZQRSTULMNOPFGHJKABCDE";
+
+        if(!letters.includes(grid[1])) return null;
+
+        let idx=letters.indexOf(grid[1]);
+        let scale=Math.pow(10,5-grid[2].length);
+
+        let E=(idx%5)*100000 + Number(grid[2])*scale;
+        let N=Math.floor(idx/5)*100000 + Number(grid[3])*scale;
+
+        let c=proj4("EPSG:29903","EPSG:4326",[E-50,N+19]);
+
+        return {
+            lat:c[1],
+            lon:c[0],
+            type:"Irish Grid"
+        };
+    }
+
+    return null;
 }
-
-// DECIMAL
-let parts = input.split(" ");
-
-if(parts.length===2 &&
- /^-?\d+(\.\d+)?$/.test(parts[0]) &&
- /^-?\d+(\.\d+)?$/.test(parts[1])){
-
-  return {
-    lat: parseFloat(parts[0]),
-    lon: parseFloat(parts[1]),
-    type:"Decimal"
-  };
-}
-
-return null;
-}
-
 // MAIN
 function convert(){
 
