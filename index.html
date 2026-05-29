@@ -129,8 +129,20 @@ function toDMM(d,lat){
 }
 
 function getGridLetter(E,N){
- const grid=[['V','W','X','Y','Z'],['Q','R','S','T','U'],['L','M','N','O','P'],['F','G','H','J','K'],['A','B','C','D','E']];
- return grid[Math.floor(N/100000)][Math.floor(E/100000)] || '?';
+  const grid=[
+    ['V','W','X','Y','Z'],
+    ['Q','R','S','T','U'],
+    ['L','M','N','O','P'],
+    ['F','G','H','J','K'],
+    ['A','B','C','D','E']
+  ];
+
+  let row = Math.floor(N/100000);
+  let col = Math.floor(E/100000);
+
+  if(row < 0 || row > 4 || col < 0 || col > 4) return '?';
+
+  return grid[row]?.[col] ?? '?';
 }
 
 function parse(input){
