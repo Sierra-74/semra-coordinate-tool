@@ -302,9 +302,13 @@ if(res && res.type === "EIRCODE"){
   const query = encodeURIComponent(res.value + ", Ireland");
 
   // 1️⃣ GOOGLE FIRST
-  fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=AIzaSyBA7CuGaDt3OZPiUvPOYHXLvcfvOZA9vLk`)
-    .then(r => r.json())
-    .then(data => {
+ const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=AIzaSyBA7CuGaDt3OZPiUvPOYHXLvcfvOZA9vLk`;
+
+fetch(url)
+  .then(r => r.json())
+  .then(data => {
+    console.log(data);
+  });
 
       if(data.status === "OK" && data.results.length){
 
