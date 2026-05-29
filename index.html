@@ -297,15 +297,34 @@ if(!res){
 }
 
 // EIRCODE HANDLING
-if(res.type==="EIRCODE"){
+if(res && res.type === "EIRCODE"){
 
-fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(res.value+",Ireland")}&key=YOUR_API_KEY`)
-.then(r=>r.json())
-.then(data=>{
+  const apiKey = "https://ws.postcoder.com/pcw/{apikey}/position/{countrycode}/{postcode}";
 
-if(!data.results || !data.results.length){
- result.innerHTML="❌ Eircode not found";
- return;
+  fetch(`https://ws.postcoder.com/pcw/${apiKey}/position/ie/${encodeURIComponent(res.value)}`)
+    .then(r => r.json())
+    .then(data => {
+
+      console.log("Postcoder response:", data);
+
+      // ✅ VALIDATION
+      if(!data || !data.latitude || !data.longitude){
+        result.innerHTML = "❌ Eircode not found";
+        return;
+      }
+
+      let lat = parseFloat(data.latitude);
+      let lon = parseFloat(data.longitude);
+
+      updateMap(lat, lon, "Eircode");
+
+    })
+    .catch(err => {
+      console.error(err);
+      result.innerHTML = "❌ Eircode lookup failed";
+    });
+
+  return;
 }
 
 let lat=data.results[0].geometry.location.lat;
