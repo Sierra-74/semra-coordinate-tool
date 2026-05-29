@@ -344,7 +344,7 @@ function parse(input){
 let eircodeMatch = input.match(/^[A-Z0-9]{3}\s?[A-Z0-9]{4}$/);
 
 if(eircodeMatch){
-    return { type: "EIRCODE", value: input.replace(" ","") };
+    return { type: "EIRCODE", value: input.replace(/\s+/g, "")
 }
 ``
     // ✅ DECIMAL (robust - handles split & normal safely)
@@ -481,9 +481,11 @@ function convert(){
   // ✅ EIRCODE HANDLING (GOOGLE API)
 if(res && res.type === "EIRCODE"){
 
-  fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${res.value},Ireland&key=AIzaSyBA7CuGaDt3OZPiUvPOYHXLvcfvOZA9vLk`)
+ fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(res.value + ",Ireland")}&key=YOUR_API_KEY`)
   .then(r => r.json())
   .then(data => {
+    console.log(data);
+  });
 
     if(data.results && data.results.length){
 
